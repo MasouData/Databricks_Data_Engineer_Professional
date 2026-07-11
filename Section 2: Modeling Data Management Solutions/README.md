@@ -40,7 +40,7 @@ Each row is still mostly raw. The actual business record is inside value.
 
 **Important code pattern:**
 
-python
+```python
 from pyspark.sql import functions as F
 
 raw_schema = """
@@ -54,17 +54,19 @@ raw_schema = """
 
 query = (
     spark.readStream
-        .format("cloudFiles")
-        .option("cloudFiles.format", "json")
-        .schema(raw_schema)
-        .load(raw_path)
-        .withColumn("event_ts", (F.col("timestamp") / 1000).cast("timestamp"))
-        .withColumn("ingest_ts", F.current_timestamp())
-        .writeStream
-        .option("checkpointLocation", checkpoint_path)
-        .trigger(availableNow=True)
-        .toTable("bronze")
+    .format("cloudFiles")
+    .option("cloudFiles.format", "json")
+    .schema(raw_schema)
+    .load(raw_path)
+    .withColumn("event_ts", (F.col("timestamp") / 1000).cast("timestamp"))
+    .withColumn("ingest_ts", F.current_timestamp())
+    .writeStream
+    .option("checkpointLocation", checkpoint_path)
+    .trigger(availableNow=True)
+    .toTable("bronze")
 )
+```
+
 
 
 
