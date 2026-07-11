@@ -230,8 +230,22 @@ CHECK (order_timestamp >= TIMESTAMP '2020-01-01');
 >| `NOT NULL` is also enforced      | Useful for business keys.                              |
 >| PK/FK/unique are informational   | They are not enforced by Databricks.                   |
 
->[!NOTE]
->Delta enforced constraints: NOT NULL, CHECK.
->Informational constraints: PRIMARY KEY, FOREIGN KEY, UNIQUE.
->PK/FK/UNIQUE are not enforced; do not rely on them to block bad data.
+`Delta enforced constraints: NOT NULL, CHECK.
+Informational constraints: PRIMARY KEY, FOREIGN KEY, UNIQUE.
+PK/FK/UNIQUE are not enforced; do not rely on them to block bad data.`
 
+**Lakeflow expectations**<br>
+In Lakeflow Spark Declarative Pipelines, expectations are true/false SQL expressions applied to rows, and violation policies can be warn, drop, or fail. They also emit metrics to the pipeline event log.
+
+```sql
+CREATE OR REFRESH STREAMING TABLE orders_clean (
+  CONSTRAINT valid_order_id EXPECT (order_id IS NOT NULL) ON VIOLATION DROP ROW,
+  CONSTRAINT valid_quantity EXPECT (quantity > 0) ON VIOLATION DROP ROW
+)
+AS SELECT * FROM STREAM(orders_raw);
+```
+
+>[!note]
+>Use expectations for pipeline-level data quality with metrics.
+>Use Delta constraints for table-level hard guarantees.
+>Use filters only when silent removal is acceptable or when invalid rows are separately quarantined.
