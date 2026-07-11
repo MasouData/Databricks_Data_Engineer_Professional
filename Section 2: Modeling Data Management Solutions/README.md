@@ -337,6 +337,6 @@ def upsert_orders(microBatchDF, batchId):
 )
 ```
 >[!important]
-> `foreachBatch` is **at-least-once** by default. `foreachBatch()` provides only at-least-once write guarantees
+> `foreachBatch` is **at-least-once** by default. `foreachBatch()` provides only at-least-once write guarantees.<br>
 > To guarantee **exactly-once** processing, the storage system needs to remember which batchId values have already been completely processed.
 
