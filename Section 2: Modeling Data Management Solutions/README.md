@@ -220,7 +220,7 @@ ALTER TABLE orders_silver
 ADD CONSTRAINT timestamp_within_range
 CHECK (order_timestamp >= TIMESTAMP '2020-01-01');
 ```
->[warning]
+>[!warning]
 >Important details:
 >| Point                            | Explanation                                            |
 >| -------------------------------- | ------------------------------------------------------ |
