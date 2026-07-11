@@ -257,4 +257,50 @@ AS SELECT * FROM STREAM(orders_raw);
 
 
 ### 6. Streaming deduplication
+**Why deduplication is needed?** Streaming systems can receive duplicate events due to:<br>
+- retries from source system
+- replayed Kafka messages
+- late arriving files
+- duplicated file delivery
+- pipeline restart/reprocessing
+- CDC source behavior
+
+**Batch deduplication**<br>
+In a **batch** processing job, `dropDuplicates` scans the whole static dataset at once, finds duplicates across all rows, and keeps only the unique ones.
+
+```python
+deduped_batch = (
+    orders_df
+        .dropDuplicates(["order_id", "order_timestamp"])
+)
+```
+
+**Streaming deduplication with watermark**<br>
+```python
+deduped_stream = (
+    orders_stream
+        .withWatermark("order_timestamp", "30 seconds")
+        .dropDuplicates(["order_id", "order_timestamp"])
+)
+```
+A **watermark** tells Spark how long to keep state for late-arriving data. For example, `withWatermark("order_timestamp", "30 seconds")` 
+means Spark keeps deduplication state for a bounded time window based on event time. 
+
+> [!important]
+> `dropDuplicates` vs `dropDuplicatesWithinWatermark`
+> | Method                                  | Use case                                                                             |
+>| --------------------------------------- | ------------------------------------------------------------------------------------ |
+>| `dropDuplicates(["id", "event_time"])`  | Classic dedup with keys including event time.                                        |
+>| `dropDuplicatesWithinWatermark(["id"])` | Dedup by unique ID even when event-time values may differ between duplicate records. |
+>
+> For example: 
+> ```python
+>deduped = (
+>    orders_stream
+>        .withWatermark("order_timestamp", "10 minutes")
+>        .dropDuplicatesWithinWatermark(["order_id"])
+>)
+>```
+> deduplicate on a unique identifier within the watermark threshold even when fields such as event time differ across duplicate records.
+
 
