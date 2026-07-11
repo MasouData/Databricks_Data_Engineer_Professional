@@ -66,8 +66,26 @@ query = (
     .toTable("bronze")
 )
 ```
+**AvailableNow** is for scheduled incremental batch processing.
 
+### 3. Auto Loader:
+```python
+spark.readStream.format("cloudFiles")
+.option("cloudFiles.format", "json")
+.schema(schema)
+.load(path)
+```
+That is **Auto Loader**. Auto Loader is incremental cloud-file ingestion mechanism. 
 
+critical Auto Loader options:
+| Option                           | Meaning                                                                               |
+| -------------------------------- | ------------------------------------------------------------------------------------- |
+| `cloudFiles.format`              | Source file format: JSON, CSV, Parquet, Avro, etc.                                    |
+| `cloudFiles.schemaLocation`      | Stores inferred/evolved schema history. Important for schema inference/evolution.     |
+| `.schema(...)`                   | Fixed schema. Good when schema is known and stable.                                   |
+| `cloudFiles.schemaEvolutionMode` | Controls behavior when new columns or type changes appear.                            |
+| `rescuedDataColumn`              | Captures unexpected or mismatched data instead of silently losing it.                 |
+| `checkpointLocation`             | Stores streaming progress and state. Needed for exactly-once-style progress tracking. |
 
 
 
