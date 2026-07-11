@@ -313,7 +313,7 @@ it successfully drops the second row as a duplicate.
 
 
 **`foreachBatch`**<br>
-`foreachBatch` lets to apply **batch** logic to every **micro-batch**, and must use foreachBatch for Delta Lake<br>
+`foreachBatch` lets to apply **batch** logic to every **micro-batch**, and must use `foreachBatch` for Delta Lake<br>
 merge operations in Structured Streaming.
 
 ```python
@@ -336,3 +336,7 @@ def upsert_orders(microBatchDF, batchId):
         .start()
 )
 ```
+>[!important]
+> `foreachBatch` is **at-least-once** by default. `foreachBatch()` provides only at-least-once write guarantees
+> To guarantee **exactly-once** processing, the storage system needs to remember which batchId values have already been completely processed.
+
