@@ -1,4 +1,4 @@
-### 1. Big picture: what Section 2 is really about
+### 1. Big picture: what "Modeling Data Management Solutions" is really about
 
 Section 2 is not just “data modeling” in the traditional star-schema sense. In Databricks Professional, it is closer to: 
 | Area              | What you must know                                                                                   |
@@ -234,7 +234,12 @@ CHECK (order_timestamp >= TIMESTAMP '2020-01-01');
 Informational constraints: PRIMARY KEY, FOREIGN KEY, UNIQUE.
 PK/FK/UNIQUE are not enforced; do not rely on them to block bad data.`
 
-**Lakeflow expectations**<br>
+**Filter:**
+```python
+clean_orders = orders_df.filter("quantity > 0")
+```
+
+**Lakeflow expectations:**<br>
 In Lakeflow Spark Declarative Pipelines, expectations are true/false SQL expressions applied to rows, and violation policies can be warn, drop, or fail. They also emit metrics to the pipeline event log.
 
 ```sql
@@ -246,6 +251,10 @@ AS SELECT * FROM STREAM(orders_raw);
 ```
 
 >[!NOTE]
->Use expectations for pipeline-level data quality with metrics.<br>
->Use Delta constraints for table-level hard guarantees.<br>
->Use filters only when silent removal is acceptable or when invalid rows are separately quarantined.
+>Use **expectations** for pipeline-level data quality with metrics.<br>
+>Use Delta **constraints** for table-level hard guarantees.<br>
+>Use **filters** only when silent removal is acceptable or when invalid rows are separately quarantined.
+
+
+### 6. Streaming deduplication
+
