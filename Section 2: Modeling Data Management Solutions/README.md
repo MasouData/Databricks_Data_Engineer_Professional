@@ -185,3 +185,47 @@ FROM (
 > **Important: from_json is not Auto Loader schema evolution**<br>
 > The `from_json` schema acts as a fixed parser schema; if new fields appear, you must update the parser schema manually unless you are leveraging Lakeflow schema evolution features.
 
+Silver table responsibilities:<br>
+- parse raw payloads
+- cast data types
+- enforce schema
+- remove corrupt/unusable rows
+- deduplicate
+- standardize names and timestamps
+- add business keys
+- join small reference data if needed
+
+**5. Quality enforcement: constraints, filters, expectations**<br>
+Three different quality mechanisms
+
+| Mechanism                | Where used                      | What happens to bad records?                                  | Good for                               |
+| ------------------------ | ------------------------------- | ------------------------------------------------------------- | -------------------------------------- |
+| **Filter**               | DataFrame or SQL transformation | Bad rows are silently removed unless you store them elsewhere | Simple cleansing                       |
+| **Delta constraint**     | Delta table                     | Write fails if invalid data is written                        | Hard table-level guarantee             |
+| **Lakeflow expectation** | Declarative Pipelines           | Warn, drop, fail, or collect metrics                          | Production pipeline quality management |
+
+**Delta constraints**<br>
+Databricks supports enforced constraints on Delta tables: `NOT NULL` and `CHECK`
+
+```sql
+ALTER TABLE orders_silver CHANGE COLUMN order_id SET NOT NULL;
+```
+
+```sql
+ALTER TABLE orders_silver
+ADD CONSTRAINT valid_quantity CHECK (quantity > 0);
+```
+```sql
+ALTER TABLE orders_silver
+ADD CONSTRAINT timestamp_within_range
+CHECK (order_timestamp >= TIMESTAMP '2020-01-01');
+```
+>[warning]
+>Important details:
+>| Point                            | Explanation                                            |
+>| -------------------------------- | ------------------------------------------------------ |
+>| Constraints require Delta Lake   | Databricks constraints require Delta tables.           |
+>| `CHECK` constraints are enforced | New invalid writes fail.                               |
+>| Existing data is checked         | Adding a constraint fails if existing rows violate it. |
+>| `NOT NULL` is also enforced      | Useful for business keys.                              |
+>| PK/FK/unique are informational   | They are not enforced by Databricks.                   |
