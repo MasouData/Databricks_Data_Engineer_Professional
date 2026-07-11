@@ -340,3 +340,57 @@ def upsert_orders(microBatchDF, batchId):
 > `foreachBatch` is **at-least-once** by default. `foreachBatch()` provides only at-least-once write guarantees.<br>
 > To guarantee **exactly-once** processing, the storage system needs to remember which batchId values have already been completely processed.
 
+Because `MERGE INTO` query says `WHEN NOT MATCHED THEN INSERT *`, running it a second time is safe—it will see the records already exist and skip them. This makes specific code naturally **idempotent**.
+
+However, if function did something else—like calculating a running balance (`total = target.total + source.total`) or logging events to an external database—running that batch a second time would cause incorrect, duplicate actions. That is why foreachBatch is inherently **at-least-once**.
+
+**How to Achieve "Exactly-Once" Using batchId:**<br>
+To guarantee exactly-once processing, your storage system needs to remember which batchId values have already been completely processed. Before your code executes its main logic, it checks this history:<br>
+- If the batchId is already marked as completed, skip the batch.
+- If the batchId is new, run the logic and record that batchId as done.
+
+### Achieving Exactly-Once Semantics in foreachBatch
+
+To ensure a micro-batch is never processed twice (even after a cluster crash), use a Delta table to track processed `batchId` tokens.
+
+#### Step 1: Create the Batch Tracking Table
+Run this SQL command once to set up your transaction log table:
+
+```sql
+CREATE TABLE IF NOT EXISTS processed_batches (
+    batch_id LONG NOT NULL,
+    processed_at TIMESTAMP NOT NULL
+);
+```
+
+#### Step 2: Update the PySpark Loop with Idempotent Log Checking
+Modify your `foreachBatch` function to check this table before executing the `MERGE` statement:
+
+```python
+def upsert_orders_exactly_once(microBatchDF, batchId):
+    spark = microBatchDF.sparkSession
+    
+    # 1. Check if this specific batchId was already successfully processed
+    already_processed = spark.sql(f"""
+        SELECT 1 FROM processed_batches WHERE batch_id = {batchId}
+    """).count() > 0
+    
+    if already_processed:
+        print(f"Batch {batchId} was already processed successfully. Skipping.")
+        return  # Safely exits the function without doing anything
+
+    # 2. Execute your core pipeline logic
+    microBatchDF.createOrReplaceTempView("orders_microbatch")
+    spark.sql("""
+        MERGE INTO orders_silver AS target
+        USING orders_microbatch AS source
+        ON target.order_id = source.order_id
+           AND target.order_timestamp = source.order_timestamp
+        WHEN NOT MATCHED THEN INSERT *
+    """)
+    
+    # 3. Commit the batchId to the log table to prevent future duplicates
+    spark.sql(f"""
+        INSERT INTO processed_batches VALUES ({batchId}, current_timestamp())
+    """)
+```
