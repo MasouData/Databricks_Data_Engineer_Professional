@@ -303,4 +303,36 @@ means Spark keeps deduplication state for a bounded time window based on event t
 >```
 > deduplicate on a unique identifier within the watermark threshold even when fields such as event time differ across duplicate records.
 
+**Example:** <br>
+Imagine these two records arrive in your stream at the exact same time and watermark window is 10-min:<br>
+`{ "order_id": "A1", "order_timestamp": "12:00:00" }`<br>
+`{ "order_id": "A1", "order_timestamp": "12:00:15" }` (Same order, slightly later timestamp)<br> 
+`dropDuplicates` sees two unique combinations (`A1 + 12:00:00` vs `A1 + 12:00:15`). It keeps both rows (no deduplication happens).<br>
+`dropDuplicatesWithinWatermark` sees only the ID (`A1` vs `A1`). Because they arrived within the 10-minute window,<br>
+it successfully drops the second row as a duplicate.
 
+
+**`foreachBatch`**<br>
+`foreachBatch` lets to apply **batch** logic to every **micro-batch**, and must use foreachBatch for Delta Lake<br>
+merge operations in Structured Streaming.
+
+```python
+def upsert_orders(microBatchDF, batchId):
+    microBatchDF.createOrReplaceTempView("orders_microbatch")
+
+    microBatchDF.sparkSession.sql("""
+        MERGE INTO orders_silver AS target
+        USING orders_microbatch AS source
+        ON target.order_id = source.order_id
+           AND target.order_timestamp = source.order_timestamp
+        WHEN NOT MATCHED THEN INSERT *
+    """)
+
+(
+    deduped_stream.writeStream
+        .foreachBatch(upsert_orders)
+        .option("checkpointLocation", checkpoint)
+        .trigger(availableNow=True)
+        .start()
+)
+```
