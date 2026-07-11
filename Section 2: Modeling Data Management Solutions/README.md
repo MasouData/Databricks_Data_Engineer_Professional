@@ -168,12 +168,7 @@ aligned SQL is:
 ```sql
 CREATE OR REFRESH STREAMING TABLE orders_silver AS
 SELECT 
-    v.order_id,
-    v.order_timestamp,
-    v.customer_id,
-    v.quantity,
-    v.total,
-    v.books
+    v.*
 FROM (
     SELECT 
         from_json(
@@ -184,4 +179,9 @@ FROM (
     FROM STREAM(bronze)
     WHERE topic = 'orders'
 );
-```sql
+```
+
+> [!WARNING]
+> **Important: from_json is not Auto Loader schema evolution**<br>
+> The `from_json` schema acts as a fixed parser schema; if new fields appear, you must update the parser schema manually unless you are leveraging Lakeflow schema evolution features.
+
