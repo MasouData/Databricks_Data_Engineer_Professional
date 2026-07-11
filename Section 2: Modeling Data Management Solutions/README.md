@@ -441,6 +441,7 @@ VALUES (
 
 1. The Initial State (Before the Merge)<br>
 books_silver (Target Table)
+
 | book_id | title        | author  | price | current | effective_date | end_date |
 |---------|--------------|---------|-------|---------|---------------|----------|
 | B101    | Spark Basics | J. Doe  | 20    | true    | 2026-01-01    | NULL     |
@@ -454,6 +455,7 @@ A new record arrives on 2026-07-11 because the price changed from 20 to 30.
 
 2. The Final State (After the Merge Executed)<br>
 books_silver (Updated Target Table)
+
 | book_id | title        | author  | price | current | effective_date | end_date    |
 |---------|--------------|---------|-------|---------|---------------|------------|
 | B101    | Spark Basics | J. Doe  | 20    | false   | 2026-01-01    | 2026-07-11 |
