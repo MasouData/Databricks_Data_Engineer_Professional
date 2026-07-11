@@ -245,7 +245,7 @@ CREATE OR REFRESH STREAMING TABLE orders_clean (
 AS SELECT * FROM STREAM(orders_raw);
 ```
 
->[!note]
->Use expectations for pipeline-level data quality with metrics.
->Use Delta constraints for table-level hard guarantees.
+>[!NOTE]
+>Use expectations for pipeline-level data quality with metrics.<br>
+>Use Delta constraints for table-level hard guarantees.<br>
 >Use filters only when silent removal is acceptable or when invalid rows are separately quarantined.
