@@ -181,7 +181,7 @@ FROM (
 );
 ```
 
-> [!WARNING]
+> >[!IMPORTANT]
 > **Important: from_json is not Auto Loader schema evolution**<br>
 > The `from_json` schema acts as a fixed parser schema; if new fields appear, you must update the parser schema manually unless you are leveraging Lakeflow schema evolution features.
 
@@ -229,3 +229,9 @@ CHECK (order_timestamp >= TIMESTAMP '2020-01-01');
 >| Existing data is checked         | Adding a constraint fails if existing rows violate it. |
 >| `NOT NULL` is also enforced      | Useful for business keys.                              |
 >| PK/FK/unique are informational   | They are not enforced by Databricks.                   |
+
+>[!NOTE]
+>Delta enforced constraints: NOT NULL, CHECK.
+>Informational constraints: PRIMARY KEY, FOREIGN KEY, UNIQUE.
+>PK/FK/UNIQUE are not enforced; do not rely on them to block bad data.
+
