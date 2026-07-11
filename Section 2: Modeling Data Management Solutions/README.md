@@ -440,7 +440,7 @@ VALUES (
 ```
 
 1. The Initial State (Before the Merge)<br>
-books_silver (Target Table)<br>
+books_silver (Target Table)
 | book_id | title        | author  | price | current | effective_date | end_date |
 |---------|--------------|---------|-------|---------|---------------|----------|
 | B101    | Spark Basics | J. Doe  | 20    | true    | 2026-01-01    | NULL     |
