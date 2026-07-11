@@ -394,3 +394,67 @@ def upsert_orders_exactly_once(microBatchDF, batchId):
         INSERT INTO processed_batches VALUES ({batchId}, current_timestamp())
     """)
 ```
+
+**Common exam traps**<br>
+
+| Trap                                                     | Correct understanding                                                                                                    |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| “Structured Streaming automatically removes duplicates.” | No. You must deduplicate explicitly.                                                                                     |
+| “Use `distinct` in streaming dedup.”                     | Usually wrong. Use watermark + `dropDuplicates`/`dropDuplicatesWithinWatermark`.                                         |
+| “Watermark removes old rows from the target.”            | No. It removes old state from the streaming query.                                                                       |
+| “foreachBatch gives exactly-once writes automatically.”  | No. It is at-least-once unless your logic is idempotent.                                                                 |
+| “Dedup key should always include timestamp.”             | Not always. If duplicate events can have different timestamps, use stable event ID with `dropDuplicatesWithinWatermark`. |
+
+
+### 7. Type 2 Slowly Changing Dimension
+**SCD Type 1 vs Type 2**
+| Type           | Behavior                                                    | Example                                         |
+| -------------- | ----------------------------------------------------------- | ----------------------------------------------- |
+| **SCD Type 1** | Overwrite old value. No history.                            | Customer address updated in place.              |
+| **SCD Type 2** | Keep old version and insert new version. History preserved. | Product price history, customer status history. |
+
+
+`SCD Type 1 = current state only.`<br>
+`SCD Type 2 = full history with effective_date, end_date, current flag.`
+
+```sql
+MERGE INTO books_silver AS target
+USING staged_updates AS source
+ON target.book_id = source.merge_key
+
+WHEN MATCHED
+  AND target.current = true
+  AND target.price <> source.price
+THEN UPDATE SET
+  current = false,
+  end_date = source.updated
+
+WHEN NOT MATCHED
+THEN INSERT (
+  book_id, title, author, price, current, effective_date, end_date
+)
+VALUES (
+  source.book_id, source.title, source.author, source.price,
+  true, source.updated, NULL
+);
+```
+
+1. The Initial State (Before the Merge)<br>
+books_silver (Target Table)<br>
+| book_id | title        | author  | price | current | effective_date | end_date |
+|---------|--------------|---------|-------|---------|---------------|----------|
+| B101    | Spark Basics | J. Doe  | 20    | true    | 2026-01-01    | NULL     |
+
+`staged_updates` (Source Data)<br>
+A new record arrives on 2026-07-11 because the price changed from 20 to 30.
+| merge_key | book_id | title        | author  | price | updated    |
+|-----------|---------|--------------|---------|-------|------------|
+| B101      | B101    | Spark Basics | J. Doe  | 30    | 2026-07-11 |
+
+
+2. The Final State (After the Merge Executed)<br>
+books_silver (Updated Target Table)
+| book_id | title        | author  | price | current | effective_date | end_date    |
+|---------|--------------|---------|-------|---------|---------------|------------|
+| B101    | Spark Basics | J. Doe  | 20    | false   | 2026-01-01    | 2026-07-11 |
+| B101    | Spark Basics | J. Doe  | 30    | true    | 2026-07-11    | NULL       |
